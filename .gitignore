@@ -1,0 +1,19 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+db.sqlite3
+
+# Environment
+.env
+
+# Node / React
+frontend/node_modules/
+frontend/dist/
+*.log
+
+# VSCode
+.vscode/
+cmds.txt
