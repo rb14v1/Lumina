@@ -41,7 +41,19 @@ const CopyPromptButton = ({
  
     try {
       // ✅ 1. Copy text
-      await navigator.clipboard.writeText(promptText || "");
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(promptText || "");
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = promptText || "";
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        document.execCommand("copy");
+        textarea.remove();
+      }
  
       // UI change
       setCopied(true);
