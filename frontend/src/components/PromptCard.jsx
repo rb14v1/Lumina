@@ -202,7 +202,7 @@ export default function PromptCard({
         )}
       </div>
  
-      <div className="bg-white p-3 rounded-lg border border-gray-200">
+      <div className="bg-white p-3 rounded-lg border border-gray-200 cursor-default">
         <p
           className="text-sm font-semibold text-gray-800 leading-relaxed whitespace-pre-wrap break-words overflow-y-auto"
           style={{
