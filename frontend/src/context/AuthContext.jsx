@@ -93,22 +93,22 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const loginWithMicrosoft = async (azureAccessToken) => {
-    try {
-      const res = await api.post("/sso-login/", {
-        access_token: azureAccessToken,
-      });
+  // const loginWithMicrosoft = async (azureAccessToken) => {
+  //   try {
+  //     const res = await api.post("/sso-login/", {
+  //       access_token: azureAccessToken,
+  //     });
 
-      localStorage.setItem("accessToken", res.data.token);
+  //     localStorage.setItem("accessToken", res.data.token);
 
-      setIsLoggedIn(true);
-      await fetchCurrentUser();
-      return true;
-    } catch (err) {
-      console.error("SSO Login failed:", err);
-      throw err;
-    }
-  };
+  //     setIsLoggedIn(true);
+  //     await fetchCurrentUser();
+  //     return true;
+  //   } catch (err) {
+  //     console.error("SSO Login failed:", err);
+  //     throw err;
+  //   }
+  // };
 
   const logout = () => {
     localStorage.removeItem("accessToken");
@@ -128,7 +128,7 @@ export const AuthProvider = ({ children }) => {
         isAdmin: !!(user && user.is_staff),
 
         login,
-        loginWithMicrosoft,
+        //loginWithMicrosoft,
         logout,
         fetchCurrentUser,
 
