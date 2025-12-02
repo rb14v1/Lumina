@@ -7,7 +7,7 @@ import Footer from "../components/Footer";
 import HistoryModal from "../components/HistoryModal.jsx";
 import PaginatedGrid from "../components/PaginatedGrid";
  
-const API_BASE = "http://127.0.0.1:8000/api";
+const API_BASE = "/api";
  
 export default function Dashboard() {
   const { isAdmin, isLoggedIn } = useAuth();
