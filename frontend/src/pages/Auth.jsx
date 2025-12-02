@@ -3,8 +3,8 @@ import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import api from "../api/axios";
 import Footer from "../components/Footer";
-import { useMsal } from "@azure/msal-react"; 
-import { loginRequest } from "../api/authConfig"; 
+//import { useMsal } from "@azure/msal-react"; 
+//import { loginRequest } from "../api/authConfig"; 
 
 import version1Logo from "../assets/version1.png";
 import promptHubLogo from "../assets/lumina.png";
@@ -25,9 +25,9 @@ const Spinner = () => (
 );
 
 const Auth = () => {
-  const { login, loginWithMicrosoft } = useAuth(); 
-  const { instance } = useMsal(); 
-  
+  // const { login, loginWithMicrosoft } = useAuth(); 
+  // const { instance } = useMsal(); 
+  const { login } = useAuth();
   const [state, setState] = useState("login"); 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -42,20 +42,20 @@ const Auth = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleMicrosoftLogin = async () => {
-      setMessage("");
-      try {
-          const loginResponse = await instance.loginPopup(loginRequest);
-          setLoading(true);
+  // const handleMicrosoftLogin = async () => {
+  //     setMessage("");
+  //     try {
+  //         const loginResponse = await instance.loginPopup(loginRequest);
+  //         setLoading(true);
           
-          await loginWithMicrosoft(loginResponse.accessToken);
-          setMessage("✅ SSO Login successful!");
-      } catch (error) {
-          console.error(error);
-          setMessage("❌ SSO Login Failed");
-          setLoading(false);
-      }
-  };
+  //         await loginWithMicrosoft(loginResponse.accessToken);
+  //         setMessage("✅ SSO Login successful!");
+  //     } catch (error) {
+  //         console.error(error);
+  //         setMessage("❌ SSO Login Failed");
+  //         setLoading(false);
+  //     }
+  // };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -134,8 +134,7 @@ const Auth = () => {
             </div>
           )}
 
-          {/* --- NEW TEAL SSO BUTTON --- */}
-          {state === "login" && (
+          {/* {state === "login" && (
             <>
               <button
                 type="button"
@@ -154,8 +153,7 @@ const Auth = () => {
                   </div>
               </div>
             </>
-          )}
-          {/* ----------------------------- */}
+          )} */}
 
           <div className="flex items-center w-full border border-gray-300/80 h-12 rounded-full overflow-hidden pl-6 gap-2 focus-within:ring-2 focus-within:ring-teal-500 transition-all">
             <UserIcon />
