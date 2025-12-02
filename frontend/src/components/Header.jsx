@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext"; 
 import logo from "../assets/logo.png";
 import v1Logo from "../assets/v1_logo.png";
-import profileIcon from "../assets/profileIcon.png";
+import profileIcon from "../assets/ProfileIcon.png";
 import { LogOut } from "lucide-react";
 
 export default function Header() {
