@@ -10,7 +10,7 @@ SECRET_KEY = 'django-insecure-bj5f(po6j(iu*#kngrda9sq*i*$5&*14fq&lyqr$l)31&fu4s(
 
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['50.17.86.95', 'localhost', '127.0.0.1']
 
 INSTALLED_APPS = [
     'corsheaders',
