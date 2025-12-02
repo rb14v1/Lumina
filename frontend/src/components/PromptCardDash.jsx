@@ -188,7 +188,7 @@ export default function PromptCardDash({
         )}
       </div>
 
-      <div className="bg-white p-3 rounded-lg border border-gray-200">
+      <div className="bg-white p-3 rounded-lg border border-gray-200 cursor-default">
         <p
           className="text-sm font-semibold text-gray-800 font-sans leading-relaxed whitespace-pre-wrap break-words overflow-y-auto"
           style={{ minHeight: "50px", maxHeight: "50px", scrollbarWidth: "thin" }}
