@@ -421,13 +421,14 @@ export default function HomePage() {
           </div>
         </div>
         <div className="mt-4">
-          {loading && <p className="text-gray-500 text-sm">Loading prompts…</p>}
           {error && <p className="text-red-500 text-sm">Error: {error}</p>}
         </div>
 
 
         {loading ? (
-          <p className="text-gray-500 text-sm">Loading prompts…</p>
+          <div className="w-full flex justify-center items-center py-20">
+            <p className="text-gray-500 text-sm">Loading prompts…</p>
+          </div>
         ) : (
           <PaginatedGrid
             data={promptsToShow}
