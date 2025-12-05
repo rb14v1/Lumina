@@ -156,16 +156,14 @@ class PromptViewSet(viewsets.ModelViewSet):
  
         # If staff, they can see everything
         if user.is_staff:
-            # But we still allow filtering by 'mine' or 'username' if present
             if self.request.query_params.get('mine') == '1':
                 return Prompt.objects.filter(user=user).order_by('-copy_count','-created_at')
- 
+
             username = self.request.query_params.get('username')
             if username:
                 return Prompt.objects.filter(user__username=username).order_by('-copy_count','-created_at')
- 
-            return Prompt.objects.all().order_by('-copy_count','-created_at')
- 
+
+            return Prompt.objects.filter(is_public=True).order_by('-copy_count','-created_at')
         # Non-staff users:
         # If asking for their own prompts via mine=1
         if self.request.query_params.get('mine') == '1':
@@ -174,11 +172,20 @@ class PromptViewSet(viewsets.ModelViewSet):
         # If username param provided, show approved prompts for that username
         username = self.request.query_params.get('username')
         if username:
-            return Prompt.objects.filter(user__username=username, status='approved').order_by('-copy_count','-created_at')
- 
+            return Prompt.objects.filter(status='approved', is_public=True).order_by('-copy_count','-created_at')
+
         # Default: only approved prompts
-        return Prompt.objects.filter(status='approved').order_by('-copy_count','-created_at')
-   
+        return Prompt.objects.filter(status='approved', is_public=True).order_by('-copy_count','-created_at')
+
+    def _auto_approve_if_private(self, serializer):
+        is_public = serializer.validated_data.get("is_public", True)
+
+        if not is_public:
+            serializer.validated_data["status"] = "approved"
+        else:
+            serializer.validated_data["status"] = "pending"
+
+
     def get_object(self):
         try:
             return super().get_object()
@@ -197,6 +204,7 @@ class PromptViewSet(viewsets.ModelViewSet):
             raise Http404
  
     def perform_create(self, serializer):
+        self._auto_approve_if_private(serializer)
         prompt = serializer.save(user=self.request.user)
         if prompt.status == 'approved':
             PromptVersion.objects.create(
@@ -213,6 +221,7 @@ class PromptViewSet(viewsets.ModelViewSet):
    
     def perform_update(self, serializer):
         prompt_before_edit = self.get_object()
+        self._auto_approve_if_private(serializer)
         if prompt_before_edit.status == 'approved':
             PromptVersion.objects.create(
                 prompt=prompt_before_edit,

@@ -172,9 +172,9 @@ const Auth = () => {
             <input type="password" name="password" placeholder="Password" className="w-full h-full border-none outline-none" value={formData.password} onChange={handleChange} required />
           </div>
 
-          <div className="mt-4 text-left text-teal-500">
+          {/* <div className="mt-4 text-left text-teal-500">
             <button type="button" onClick={handleForgetPassword} className="text-sm hover:underline">Forget password?</button>
-          </div>
+          </div> */}
 
           <button
             type="submit"

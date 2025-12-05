@@ -55,29 +55,38 @@ class Prompt(models.Model):
     prompt_description = models.TextField(blank=True, null=True)
     prompt_text = models.TextField(blank=False, null=False)
     guidance = models.TextField(blank=True, null=True)
+
     task_type = models.CharField(
-    max_length=50,
-    choices=TASK_TYPE_CHOICES,
-    blank=True,
-    null=True)
+        max_length=50,
+        choices=TASK_TYPE_CHOICES,
+        blank=True,
+        null=True
+    )
     output_format = models.CharField(
-    max_length=50,
-    choices=OUTPUT_FORMAT_CHOICES,
-    blank=True,
-    null=True)
+        max_length=50,
+        choices=OUTPUT_FORMAT_CHOICES,
+        blank=True,
+        null=True
+    )
     category = models.CharField(max_length=50, blank=False)
+
+    is_public = models.BooleanField(default=True)
+
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,
         default='pending',
         db_index=True
     )
+
     vote = models.IntegerField(default=0)
     like_count = models.IntegerField(default=0)
     dislike_count = models.IntegerField(default=0)
     copy_count = models.IntegerField(default=0)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
     def __str__(self):
         return self.title if self.title else f'Prompt {self.id}'
  
@@ -88,15 +97,19 @@ class Vote(models.Model):
         (VOTE_UP, "Upvote"),
         (VOTE_DOWN, "Downvote"),
     )
+
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="votes")
     prompt = models.ForeignKey("Prompt", on_delete=models.CASCADE, related_name="votes")
     value = models.SmallIntegerField(choices=VOTE_CHOICES)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
     class Meta:
         constraints = [
             UniqueConstraint(fields=["user", "prompt"], name="unique_user_prompt_vote")
         ]
+
     def __str__(self):
         return f"user={self.user_id} prompt={self.prompt_id} value={self.value}"
  
@@ -104,10 +117,12 @@ class Bookmark(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="bookmarks")
     prompt = models.ForeignKey("Prompt", on_delete=models.CASCADE, related_name="bookmarks")
     created_at = models.DateTimeField(auto_now_add=True)
+
     class Meta:
         constraints = [
             UniqueConstraint(fields=["user", "prompt"], name="unique_user_prompt_bookmark")
         ]
+
     def __str__(self):
         return f"user={self.user_id} prompt={self.prompt_id}"
  
@@ -123,13 +138,16 @@ class PromptVersion(models.Model):
         null=True
     )
     version_created_at = models.DateTimeField(auto_now_add=True)
+
     title = models.CharField(max_length=255)
     prompt_description = models.TextField(blank=True, null=True)
     prompt_text = models.TextField()
     guidance = models.TextField(blank=True, null=True)
+
     task_type = models.CharField(max_length=50, choices=TASK_TYPE_CHOICES)
     output_format = models.CharField(max_length=50, choices=OUTPUT_FORMAT_CHOICES)
     category = models.CharField(max_length=50)
+
     class Meta:
         ordering = ['-version_created_at']
  
@@ -147,7 +165,7 @@ class CopiedPromptFeedback(models.Model):
     prompt = models.ForeignKey("Prompt", on_delete=models.CASCADE, related_name="feedbacks")
 
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
-    rating = models.IntegerField(default=0, null=True, blank=True) # New field for 1-5 stars
+    rating = models.IntegerField(default=0, null=True, blank=True)
     feedback_text = models.TextField(blank=True, null=True)
 
     created_at = models.DateTimeField(auto_now_add=True)

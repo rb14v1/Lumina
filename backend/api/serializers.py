@@ -26,6 +26,7 @@ class PromptSerializer(serializers.ModelSerializer):
             'task_type',
             'output_format',
             'category',
+            'is_public',
             'status',
             'vote',  
             'vote_count',

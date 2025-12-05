@@ -235,6 +235,11 @@ export default function PromptCard({
               Rejected
             </span>
           )}
+            {raw?.is_public === false && (
+              <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-md border border-red-200">
+                Private
+              </span>
+            )}
         </div>
  
         <FeedbackButtons
