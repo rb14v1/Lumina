@@ -421,50 +421,53 @@ export default function HomePage() {
           </div>
         </div>
         <div className="mt-4">
-          {loading && <p className="text-gray-500 text-sm">Loading prompts…</p>}
-          {error && <p className="text-red-500 text-sm">Error: {error}</p>}
+          {loading ? (
+            <div className="text-gray-500 text-sm py-4">Loading prompts…</div>
+          ) : error ? (
+            <div className="text-red-500 text-sm py-4">{error}</div>
+          ) : promptsToShow.length === 0 ? (
+            <div className="text-gray-500 text-sm py-4">No prompts found.</div>
+          ) : (
+            <PaginatedGrid
+              data={promptsToShow}
+              CardComponent={PromptCard}
+              cardProps={{
+                onClick: (p) => setSelectedPrompt(p),
+                handleBookmark: handleBookmark,
+                bookmarks: bookmarks,
+                onVote: (updatedBackendPrompt) => {
+                  setAllPrompts((prev) =>
+                    prev.map((existing) =>
+                      existing.id === updatedBackendPrompt.id
+                        ? mapBackendPromptToFrontend(updatedBackendPrompt)
+                        : existing
+                    )
+                  );
+
+                  const serverBookmarked =
+                    updatedBackendPrompt.is_bookmarked ??
+                    (updatedBackendPrompt.raw?.is_bookmarked ?? false);
+
+                  setBookmarks((prev) =>
+                    serverBookmarked
+                      ? prev.includes(updatedBackendPrompt.id)
+                        ? prev
+                        : [...prev, updatedBackendPrompt.id]
+                      : prev.filter((id) => id !== updatedBackendPrompt.id)
+                  );
+
+                  if (selectedPrompt && selectedPrompt.id === updatedBackendPrompt.id) {
+                    setSelectedPrompt(mapBackendPromptToFrontend(updatedBackendPrompt));
+                  }
+                },
+                currentUserUsername: user?.username,
+                showOwnerActions: activeTab === "my",
+                onEdit: handleCardEdit,
+                onOpenHistory: handleOpenHistory,
+              }}
+            />
+          )}
         </div>
-
-
-        <PaginatedGrid
-          data={promptsToShow}
-          CardComponent={PromptCard}
-          cardProps={{
-            onClick: (p) => setSelectedPrompt(p),
-            handleBookmark: handleBookmark,
-            bookmarks: bookmarks,
-            onVote: (updatedBackendPrompt) => {
-              setAllPrompts((prev) =>
-                prev.map((existing) =>
-                  existing.id === updatedBackendPrompt.id
-                    ? mapBackendPromptToFrontend(updatedBackendPrompt)
-                    : existing
-                )
-              );
-
-              const serverBookmarked =
-                updatedBackendPrompt.is_bookmarked ??
-                (updatedBackendPrompt.raw?.is_bookmarked ?? false);
-
-              setBookmarks((prev) =>
-                serverBookmarked
-                  ? prev.includes(updatedBackendPrompt.id)
-                    ? prev
-                    : [...prev, updatedBackendPrompt.id]
-                  : prev.filter((id) => id !== updatedBackendPrompt.id)
-              );
-
-              if (selectedPrompt && selectedPrompt.id === updatedBackendPrompt.id) {
-                setSelectedPrompt(mapBackendPromptToFrontend(updatedBackendPrompt));
-              }
-            },
-            currentUserUsername: user?.username,
-            showOwnerActions: activeTab === "my",
-            onEdit: handleCardEdit,
-            onOpenHistory: handleOpenHistory,
-          }}
-        />
-
       </main>
       <Footer />
       {historyModalOpen && historyPromptId && (
