@@ -22,7 +22,7 @@ const PaginatedGrid = ({
   // RESET only if data size changes significantly (filters, tabs)
   useEffect(() => {
     setCurrentPage(1);
-  }, [data.length]);
+  }, []);
 
   // Scroll-top when user switches pages
   useEffect(() => {
