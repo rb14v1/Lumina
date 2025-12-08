@@ -4,69 +4,83 @@ const PaginatedGrid = ({
   data = [],
   CardComponent,
   cardProps = {},
+  onPageChange,
   pageSize = 12,
-  onPageChange,         // HomePage uses this to lazy-load data
+  hasMore = false,
 }) => {
 
   const [currentPage, setCurrentPage] = useState(1);
 
-  const totalPages = Math.ceil(data.length / pageSize);
+  let totalPages = Math.ceil(data.length / pageSize);
 
-  // Slice current page data
-  const start = (currentPage - 1) * pageSize;
-  const currentData = data.slice(start, start + pageSize);
+  // If backend has more, allow a "virtual" page
+  if (hasMore) totalPages += 1;
 
-  // When data changes significantly (like loading next 12), stay on same page
+  const startIndex = (currentPage - 1) * pageSize;
+  const currentData = data.slice(startIndex, startIndex + pageSize);
+
   useEffect(() => {
-    if (currentPage > totalPages) {
-      setCurrentPage(totalPages || 1);
-    }
-  }, [data]);
+    setCurrentPage(1);
+  }, []);
 
-  const handleChangePage = async (page) => {
-    if (page < 1 || page > totalPages) return;
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [currentPage]);
 
-    setCurrentPage(page);
-
-    // Tell HomePage we need next batch for lazy-loading
-    if (onPageChange) {
-      await onPageChange(page);
-    }
+  const goToPage = (pageNum) => {
+    setCurrentPage(pageNum);
+    if (onPageChange) onPageChange(pageNum);
   };
 
-  return (
-    <div className="flex flex-col">
+  if (!data.length) {
+    return <p className="text-center mt-10">No prompts found</p>;
+  }
 
-      {/* GRID with fixed height to prevent jumping */}
-      <div
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
-        style={{ minHeight: "600px" }} 
-      >
-        {currentData.map((item) => (
-          <CardComponent key={item.id} prompt={item} {...cardProps} />
-        ))}
+  // PAGE WINDOW LIMIT
+  const windowSize = 4;
+  let startPage = Math.max(1, currentPage - Math.floor(windowSize / 2));
+  let endPage = startPage + windowSize - 1;
+
+  if (endPage > totalPages) {
+    endPage = totalPages;
+    startPage = Math.max(1, endPage - windowSize + 1);
+  }
+
+  return (
+    <div
+      className="flex flex-col"
+      style={{ minHeight: "650px" }} // Ensures bottom pagination stays fixed
+    >
+
+      {/* GRID SECTION */}
+      <div className="flex-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-3">
+          {currentData.map((item) => (
+            <CardComponent key={item.id} prompt={item} {...cardProps} />
+          ))}
+        </div>
       </div>
 
-      {/* PAGINATION ALWAYS FIXED AT BOTTOM */}
+      {/* PAGINATION SECTION - stays at bottom */}
       {totalPages > 1 && (
-        <div className="flex justify-center items-center gap-2 mt-8 mb-6">
+        <div className="flex justify-center items-center gap-2 mt-10 mb-4">
 
           {/* Prev */}
           <button
-            onClick={() => handleChangePage(currentPage - 1)}
+            onClick={() => goToPage(currentPage - 1)}
             disabled={currentPage === 1}
-            className="px-4 py-2 border rounded-md disabled:opacity-40"
+            className="px-4 py-2 cursor-pointer border rounded-md disabled:opacity-40"
           >
             Prev
           </button>
 
-          {/* Page numbers */}
-          {Array.from({ length: totalPages }).map((_, i) => {
-            const page = i + 1;
+          {/* Page Numbers */}
+          {Array.from({ length: endPage - startPage + 1 }).map((_, i) => {
+            const page = startPage + i;
             return (
               <button
                 key={page}
-                onClick={() => handleChangePage(page)}
+                onClick={() => goToPage(page)}
                 className={`px-4 py-2 border rounded-md ${
                   currentPage === page
                     ? "bg-teal-500 text-white"
@@ -80,9 +94,9 @@ const PaginatedGrid = ({
 
           {/* Next */}
           <button
-            onClick={() => handleChangePage(currentPage + 1)}
+            onClick={() => goToPage(currentPage + 1)}
             disabled={currentPage === totalPages}
-            className="px-4 py-2 border rounded-md disabled:opacity-40"
+            className="px-4 py-2 border cursor-pointer rounded-md disabled:opacity-40"
           >
             Next
           </button>
