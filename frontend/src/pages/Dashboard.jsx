@@ -12,44 +12,35 @@ const API_BASE = "/api";
  
 export default function Dashboard() {
   const { isAdmin, isLoggedIn } = useAuth();
- 
-  const [prompts, setPrompts] = useState([]);
-  const [selectedPrompt, setSelectedPrompt] = useState(null);
-  const [activeTab, setActiveTab] = useState("pending");
-  const [historyModalOpen, setHistoryModalOpen] = useState(false);
-  const [selectedPromptId, setSelectedPromptId] = useState(null);
   const [loading, setLoading] = useState(false);
  
   if (!isLoggedIn) return <Navigate to="/login" replace />;
   if (!isAdmin) return <Navigate to="/" replace />;
  
+  const [prompts, setPrompts] = useState([]);
+  const [selectedPrompt, setSelectedPrompt] = useState(null);
+  const [activeTab, setActiveTab] = useState("pending");
+ 
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
+  const [selectedPromptId, setSelectedPromptId] = useState(null);
+ 
   useEffect(() => {
     const fetchPrompts = async () => {
       setLoading(true);
- 
       try {
         const res = await fetch(`${API_BASE}/prompts/?status=${activeTab}`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("accessToken") || ""}`,
           },
         });
- 
-        const json = await res.json();
- 
-        // ⚠️ BACKEND MAY RETURN:
-        // 1. array []
-        // 2. paginated: { results: [] }
-        const data = Array.isArray(json) ? json : json?.results || [];
- 
+        const data = await res.json();
         setPrompts(data);
       } catch (err) {
         console.error("Error fetching prompts:", err);
-        setPrompts([]); // fallback to empty
-      } finally {
-        setLoading(false);
-      }
+      }finally {
+      setLoading(false);            
+    }
     };
- 
     fetchPrompts();
   }, [activeTab]);
  
@@ -62,13 +53,9 @@ export default function Dashboard() {
           "Content-Type": "application/json",
         },
       });
- 
       setPrompts((prev) =>
-        prev.map((p) =>
-          p.id === id ? { ...p, status: "approved" } : p
-        )
+        prev.map((p) => (p.id === id ? { ...p, status: "approved" } : p))
       );
- 
       setSelectedPrompt(null);
     } catch (err) {
       console.error("Backend sync failed:", err);
@@ -84,26 +71,22 @@ export default function Dashboard() {
           "Content-Type": "application/json",
         },
       });
- 
       setPrompts((prev) => prev.filter((p) => p.id !== id));
       setSelectedPrompt(null);
     } catch (err) {
       console.error("Reject sync failed:", err);
     }
   };
- 
   const handleOpenHistory = (id) => {
     setSelectedPromptId(id);
     setHistoryModalOpen(true);
   };
  
-  // same logic – filter by tab
   const filteredPrompts = prompts.filter((p) => p.status === activeTab);
  
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 text-gray-800">
       <Header />
- 
       <main className="flex-1 max-w-6xl w-full mx-auto px-4 py-6 space-y-6">
         <h1 className="text-3xl font-semibold mb-4">DASHBOARD</h1>
  
@@ -130,23 +113,18 @@ export default function Dashboard() {
             Approved
           </button>
         </div>
- 
-        {/* SKELETON LOADING */}
+       
         {loading && (
-          <div className="mt-6">
-            <PromptSkeleton count={12} />
-          </div>
+          <PromptSkeleton count={12} />
         )}
  
-        {/* EMPTY STATE */}
         {!loading && filteredPrompts.length === 0 && (
           <p className="text-gray-500 text-center py-10">No prompts found.</p>
         )}
  
-        {/* GRID CONTENT */}
-        {!loading && prompts.length > 0 && (
+        {!loading && filteredPrompts.length > 0 && (
           <PaginatedGrid
-            data={prompts}
+            data={filteredPrompts}
             CardComponent={PromptCard}
             cardProps={{
               onApprove: handleApprove,
@@ -155,16 +133,15 @@ export default function Dashboard() {
             }}
           />
         )}
+ 
       </main>
  
-      {/* HISTORY MODAL */}
       {historyModalOpen && (
         <HistoryModal
           promptId={selectedPromptId}
           onClose={() => setHistoryModalOpen(false)}
         />
       )}
- 
       <Footer />
     </div>
   );
