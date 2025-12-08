@@ -229,6 +229,23 @@ export default function HomePage() {
       setLoadingMore(false);
     }
   };
+  useEffect(() => {
+    if (!showBookmarks) return;
+
+    async function loadUntilAllVisible() {
+      while (hasMore && !loadingMore) {
+        const missing = bookmarks.filter(
+          (id) => !allPrompts.some((p) => p.id === id)
+        );
+
+        if (missing.length === 0) break;
+
+        await fetchPrompts(false);
+      }
+    }
+
+    loadUntilAllVisible();
+  }, [showBookmarks, bookmarks, allPrompts, hasMore]);
 
 
 
@@ -240,7 +257,7 @@ export default function HomePage() {
 
   useEffect(() => {
     setCategoryOptions(CATEGORY_OPTIONS);
-  }, []);
+  }, [data.length]);
 
 
 
@@ -335,6 +352,7 @@ export default function HomePage() {
     setHistoryModalOpen(true);
     console.debug("[HomePage] Opening history modal for id:", idToSend);
   };
+
   const handlePageChange = async (targetPage) => {
     // how many prompts we need to display up to this page
     const requiredCount = targetPage * PAGE_SIZE;
@@ -344,8 +362,6 @@ export default function HomePage() {
       await fetchPrompts(false);
     }
   };
-
-
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 text-gray-800">
