@@ -6,8 +6,9 @@ import PromptCard from "../components/PromptCardDash";
 import Footer from "../components/Footer";
 import HistoryModal from "../components/HistoryModal.jsx";
 import PaginatedGrid from "../components/PaginatedGrid";
+import PromptSkeleton from "../components/PromptSkeleton";
  
-const API_BASE = "/api";
+const API_BASE = "/api"; 
  
 export default function Dashboard() {
   const { isAdmin, isLoggedIn } = useAuth();
@@ -113,25 +114,26 @@ export default function Dashboard() {
           </button>
         </div>
        
-        {loading ? (
-          <div className="text-center text-gray-500 py-10">
-            Loading prompts...
-          </div>
-        ) : filteredPrompts.length === 0 ? (
-        <div className="text-center text-gray-500">
-          No prompts found.
-        </div>
-      ) : (
-        <PaginatedGrid
-          data={filteredPrompts}
-          CardComponent={PromptCard}
-          cardProps={{
-            onApprove: handleApprove,
-            onReject: handleReject,
-            onHistory: handleOpenHistory,
-          }}
-        />
-      )}
+        {loading && (
+          <PromptSkeleton count={12} />
+        )}
+ 
+        {!loading && filteredPrompts.length === 0 && (
+          <p className="text-gray-500 text-center py-10">No prompts found.</p>
+        )}
+ 
+        {!loading && filteredPrompts.length > 0 && (
+          <PaginatedGrid
+            data={filteredPrompts}
+            CardComponent={PromptCard}
+            cardProps={{
+              onApprove: handleApprove,
+              onReject: handleReject,
+              onHistory: handleOpenHistory,
+            }}
+          />
+        )}
+ 
       </main>
  
       {historyModalOpen && (

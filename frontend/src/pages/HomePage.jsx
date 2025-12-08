@@ -9,7 +9,7 @@ import api from "../api/axios";
 import Select from "react-select";
 import HistoryModal from "../components/HistoryModal";
 import PaginatedGrid from "../components/PaginatedGrid";
-
+import PromptSkeleton from "../components/PromptSkeleton";
 
 export default function HomePage() {
   const { user } = useAuth();
@@ -422,7 +422,11 @@ export default function HomePage() {
         </div>
         <div className="mt-4">
           {loading ? (
-            <div className="text-gray-500 text-sm py-4">Loading prompts…</div>
+            <>
+              <div className="text-gray-500 text-sm py-4">Loading prompts…</div>
+              {/* LOADING STATE - skeletons */}
+              {promptsToShow.length === 0 && <PromptSkeleton count={12} />}
+            </>
           ) : error ? (
             <div className="text-red-500 text-sm py-4">{error}</div>
           ) : promptsToShow.length === 0 ? (
@@ -468,6 +472,8 @@ export default function HomePage() {
             />
           )}
         </div>
+
+
       </main>
       <Footer />
       {historyModalOpen && historyPromptId && (

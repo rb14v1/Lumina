@@ -6,6 +6,7 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 import PromptCard from "../components/PromptCard";
 import PaginatedGrid from "../components/PaginatedGrid";
+import PromptSkeleton from "../components/PromptSkeleton";
  
 export default function UserPromptsPage() {
     const { username } = useParams();
@@ -60,7 +61,10 @@ export default function UserPromptsPage() {
                 </div>
  
                 {loading ? (
-                    <p className="text-center text-gray-500 mt-10">Loading prompts...</p>
+                    <>
+                        {/* LOADING SKELETON */}
+                        {prompts.length === 0 && <PromptSkeleton count={9} />}
+                    </>
                     ) : error ? (
                     <p className="text-center text-red-500 mt-10">{error}</p>
                     ) : prompts.length === 0 ? (
@@ -71,6 +75,7 @@ export default function UserPromptsPage() {
                         CardComponent={PromptCard}
                     />
                     )}
+
             </main>
  
             <Footer />
