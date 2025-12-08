@@ -247,8 +247,6 @@ export default function HomePage() {
     loadUntilAllVisible();
   }, [showBookmarks, bookmarks, allPrompts, hasMore]);
 
-
-
   useEffect(() => {
   // whenever tab or user changes, reset the list and load first page
   fetchPrompts(true);
@@ -354,14 +352,13 @@ export default function HomePage() {
   };
 
   const handlePageChange = async (targetPage) => {
-    // how many prompts we need to display up to this page
     const requiredCount = targetPage * PAGE_SIZE;
 
-    // If we have less prompts loaded than needed → fetch more
     if (allPrompts.length < requiredCount && hasMore && !loadingMore) {
       await fetchPrompts(false);
     }
   };
+
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 text-gray-800">
