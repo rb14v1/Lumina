@@ -24,7 +24,7 @@ const PaginatedGrid = ({
   // Reset to page 1 whenever filtered data changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [data]);
+  }, []);
 
   // Auto scroll to top when switching pages
   useEffect(() => {
