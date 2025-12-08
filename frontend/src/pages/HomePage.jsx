@@ -20,6 +20,11 @@ export default function HomePage() {
   const [bookmarks, setBookmarks] = useState([]);
   const [selectedPrompt, setSelectedPrompt] = useState(null);
 
+  const PAGE_SIZE = 12;
+
+  const [page, setPage] = useState(0);       // 0 => offset=0
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const [allPrompts, setAllPrompts] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -163,39 +168,74 @@ export default function HomePage() {
     }),
   };
 
-  const fetchPrompts = async () => {
-    setLoading(true);
+  const fetchPrompts = async (reset = false) => {
+    // when reset, we start from offset=0 and show skeleton
+    const currentOffset = reset ? 0 : page * PAGE_SIZE;
+
+    if (reset) {
+      setLoading(true);
+    } else {
+      setLoadingMore(true);
+    }
     setError(null);
+
     try {
-      let res;
+      let url = "/prompts/";
+      const params = [];
+
+      // respect "My Dashboard" tab
       if (activeTab === "my" && user?.username) {
-        res = await api.get("/prompts/?mine=1");
-      } else {
-        res = await api.get("/prompts/");
+        params.push("mine=1");
       }
 
+      // lazy loading params
+      params.push(`limit=${PAGE_SIZE}`);
+      params.push(`offset=${currentOffset}`);
 
+      if (params.length > 0) {
+        url += "?" + params.join("&");
+      }
+
+      const res = await api.get(url);
       const backendPrompts = res.data || [];
       const mapped = backendPrompts.map(mapBackendPromptToFrontend);
-      setAllPrompts(mapped);
 
+      if (reset) {
+        setAllPrompts(mapped);
+        setPage(1); // next page index
+      } else {
+        setAllPrompts((prev) => [...prev, ...mapped]);
+        setPage((prev) => prev + 1);
+      }
 
+      // if we got less than PAGE_SIZE, no more data
+      setHasMore(backendPrompts.length === PAGE_SIZE);
+
+      // bookmarks
       const bkIds = backendPrompts
         .filter((p) => p.is_bookmarked || (p.raw && p.raw.is_bookmarked))
         .map((p) => p.id);
-      setBookmarks(bkIds);
+
+      if (reset) {
+        setBookmarks(bkIds);
+      } else {
+        setBookmarks((prev) => Array.from(new Set([...prev, ...bkIds])));
+      }
     } catch (err) {
       console.error(err);
       setError("Failed to load prompts");
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
 
+
   useEffect(() => {
-    fetchPrompts();
-  }, [activeTab, user]);
+  // whenever tab or user changes, reset the list and load first page
+  fetchPrompts(true);
+}, [activeTab, user]);
 
 
   useEffect(() => {
@@ -421,55 +461,72 @@ export default function HomePage() {
           </div>
         </div>
         <div className="mt-4">
-          {loading ? (
-            <>
-              {promptsToShow.length === 0 && <PromptSkeleton count={12} />}
-            </>
+          {loading && allPrompts.length === 0 ? (
+            // first load → show skeletons
+            <PromptSkeleton count={12} />
           ) : error ? (
             <div className="text-red-500 text-sm py-4">{error}</div>
           ) : promptsToShow.length === 0 ? (
             <div className="text-gray-500 text-sm py-4">No prompts found.</div>
           ) : (
-            <PaginatedGrid
-              data={promptsToShow}
-              CardComponent={PromptCard}
-              cardProps={{
-                onClick: (p) => setSelectedPrompt(p),
-                handleBookmark: handleBookmark,
-                bookmarks: bookmarks,
-                onVote: (updatedBackendPrompt) => {
-                  setAllPrompts((prev) =>
-                    prev.map((existing) =>
-                      existing.id === updatedBackendPrompt.id
-                        ? mapBackendPromptToFrontend(updatedBackendPrompt)
-                        : existing
-                    )
-                  );
+            <>
+              <PaginatedGrid
+                data={promptsToShow}
+                CardComponent={PromptCard}
+                cardProps={{
+                  onClick: (p) => setSelectedPrompt(p),
+                  handleBookmark: handleBookmark,
+                  bookmarks: bookmarks,
+                  onVote: (updatedBackendPrompt) => {
+                    setAllPrompts((prev) =>
+                      prev.map((existing) =>
+                        existing.id === updatedBackendPrompt.id
+                          ? mapBackendPromptToFrontend(updatedBackendPrompt)
+                          : existing
+                      )
+                    );
 
-                  const serverBookmarked =
-                    updatedBackendPrompt.is_bookmarked ??
-                    (updatedBackendPrompt.raw?.is_bookmarked ?? false);
+                    const serverBookmarked =
+                      updatedBackendPrompt.is_bookmarked ??
+                      (updatedBackendPrompt.raw?.is_bookmarked ?? false);
 
-                  setBookmarks((prev) =>
-                    serverBookmarked
-                      ? prev.includes(updatedBackendPrompt.id)
-                        ? prev
-                        : [...prev, updatedBackendPrompt.id]
-                      : prev.filter((id) => id !== updatedBackendPrompt.id)
-                  );
+                    setBookmarks((prev) =>
+                      serverBookmarked
+                        ? prev.includes(updatedBackendPrompt.id)
+                          ? prev
+                          : [...prev, updatedBackendPrompt.id]
+                        : prev.filter((id) => id !== updatedBackendPrompt.id)
+                    );
 
-                  if (selectedPrompt && selectedPrompt.id === updatedBackendPrompt.id) {
-                    setSelectedPrompt(mapBackendPromptToFrontend(updatedBackendPrompt));
-                  }
-                },
-                currentUserUsername: user?.username,
-                showOwnerActions: activeTab === "my",
-                onEdit: handleCardEdit,
-                onOpenHistory: handleOpenHistory,
-              }}
-            />
+                    if (selectedPrompt && selectedPrompt.id === updatedBackendPrompt.id) {
+                      setSelectedPrompt(
+                        mapBackendPromptToFrontend(updatedBackendPrompt)
+                      );
+                    }
+                  },
+                  currentUserUsername: user?.username,
+                  showOwnerActions: activeTab === "my",
+                  onEdit: handleCardEdit,
+                  onOpenHistory: handleOpenHistory,
+                }}
+              />
+
+              {/* Optional: Load more button for next 12 */}
+              {hasMore && (
+                <div className="flex justify-center mt-4">
+                  <button
+                    onClick={() => fetchPrompts(false)}
+                    disabled={loadingMore}
+                    className="px-4 py-2 text-sm rounded-full bg-teal-600 text-white hover:bg-teal-700 disabled:opacity-60"
+                  >
+                    {loadingMore ? "Loading..." : "Load more"}
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
+
 
 
       </main>

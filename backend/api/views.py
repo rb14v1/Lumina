@@ -150,32 +150,59 @@ class PromptViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     filterset_fields = ['category', 'task_type', 'output_format', 'status']
     search_fields = ['title', 'prompt_description', 'prompt_text']
- 
+
     def get_queryset(self):
         user = self.request.user
- 
-        # If staff, they can see everything
+        params = self.request.query_params
+
+        # ----- base queryset (your existing logic, just stored in qs) -----
         if user.is_staff:
-            if self.request.query_params.get('mine') == '1':
-                return Prompt.objects.filter(user=user).order_by('-copy_count','-created_at')
+            if params.get('mine') == '1':
+                qs = Prompt.objects.filter(user=user).order_by('-copy_count', '-created_at')
 
-            username = self.request.query_params.get('username')
-            if username:
-                return Prompt.objects.filter(user__username=username).order_by('-copy_count','-created_at')
+            else:
+                username = params.get('username')
+                if username:
+                    qs = Prompt.objects.filter(user__username=username).order_by('-copy_count', '-created_at')
+                else:
+                    qs = Prompt.objects.filter(is_public=True).order_by('-copy_count', '-created_at')
+        else:
+            if params.get('mine') == '1':
+                qs = Prompt.objects.filter(user=user).order_by('-copy_count', '-created_at')
+            else:
+                username = params.get('username')
+                if username:
+                    qs = Prompt.objects.filter(
+                        status='approved',
+                        is_public=True
+                    ).order_by('-copy_count', '-created_at')
+                else:
+                    qs = Prompt.objects.filter(
+                        status='approved',
+                        is_public=True
+                    ).order_by('-copy_count', '-created_at')
 
-            return Prompt.objects.filter(is_public=True).order_by('-copy_count','-created_at')
-        # Non-staff users:
-        # If asking for their own prompts via mine=1
-        if self.request.query_params.get('mine') == '1':
-            return Prompt.objects.filter(user=user).order_by('-copy_count','-created_at')
- 
-        # If username param provided, show approved prompts for that username
-        username = self.request.query_params.get('username')
-        if username:
-            return Prompt.objects.filter(status='approved', is_public=True).order_by('-copy_count','-created_at')
+        # ----- NEW: limit + offset (for lazy loading) -----
+        limit = params.get('limit')
+        offset = params.get('offset')
 
-        # Default: only approved prompts
-        return Prompt.objects.filter(status='approved', is_public=True).order_by('-copy_count','-created_at')
+        try:
+            offset_int = int(offset) if offset is not None else 0
+            if offset_int < 0:
+                offset_int = 0
+        except ValueError:
+            offset_int = 0
+
+        if limit is not None:
+            try:
+                limit_int = int(limit)
+                if limit_int > 0:
+                    return qs[offset_int: offset_int + limit_int]
+            except ValueError:
+                pass  # if invalid limit, just ignore and return full qs
+
+        # default behaviour (no limit)
+        return qs
 
     def _auto_approve_if_private(self, serializer):
         is_public = serializer.validated_data.get("is_public", True)
