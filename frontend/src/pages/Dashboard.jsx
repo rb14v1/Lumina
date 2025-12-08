@@ -7,50 +7,52 @@ import Footer from "../components/Footer";
 import HistoryModal from "../components/HistoryModal.jsx";
 import PaginatedGrid from "../components/PaginatedGrid";
 import PromptSkeleton from "../components/PromptSkeleton";
-
-const API_BASE = "/api";
-
+ 
+const API_BASE = "http://127.0.0.1:8000/api"; // Use /api for ec2
+ 
 export default function Dashboard() {
   const { isAdmin, isLoggedIn } = useAuth();
-  const [loading, setLoading] = useState(false);
-
-  if (!isLoggedIn) return <Navigate to="/login" replace />;
-  if (!isAdmin) return <Navigate to="/" replace />;
-
+ 
   const [prompts, setPrompts] = useState([]);
   const [selectedPrompt, setSelectedPrompt] = useState(null);
   const [activeTab, setActiveTab] = useState("pending");
-
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
   const [selectedPromptId, setSelectedPromptId] = useState(null);
-
+  const [loading, setLoading] = useState(false);
+ 
+  if (!isLoggedIn) return <Navigate to="/login" replace />;
+  if (!isAdmin) return <Navigate to="/" replace />;
+ 
   useEffect(() => {
     const fetchPrompts = async () => {
       setLoading(true);
+ 
       try {
         const res = await fetch(`${API_BASE}/prompts/?status=${activeTab}`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("accessToken") || ""}`,
           },
         });
-
+ 
         const json = await res.json();
-
-        // ✅ Handle both paginated + non-paginated responses
+ 
+        // ⚠️ BACKEND MAY RETURN:
+        // 1. array []
+        // 2. paginated: { results: [] }
         const data = Array.isArray(json) ? json : json?.results || [];
-
+ 
         setPrompts(data);
       } catch (err) {
         console.error("Error fetching prompts:", err);
-        setPrompts([]);
+        setPrompts([]); // fallback to empty
       } finally {
         setLoading(false);
       }
     };
-
+ 
     fetchPrompts();
   }, [activeTab]);
-
+ 
   const handleApprove = async (id) => {
     try {
       await fetch(`${API_BASE}/prompts/${id}/approve/`, {
@@ -60,17 +62,19 @@ export default function Dashboard() {
           "Content-Type": "application/json",
         },
       });
-
+ 
       setPrompts((prev) =>
-        prev.map((p) => (p.id === id ? { ...p, status: "approved" } : p))
+        prev.map((p) =>
+          p.id === id ? { ...p, status: "approved" } : p
+        )
       );
-
+ 
       setSelectedPrompt(null);
     } catch (err) {
       console.error("Backend sync failed:", err);
     }
   };
-
+ 
   const handleReject = async (id) => {
     try {
       await fetch(`${API_BASE}/prompts/${id}/reject/`, {
@@ -80,29 +84,29 @@ export default function Dashboard() {
           "Content-Type": "application/json",
         },
       });
-
+ 
       setPrompts((prev) => prev.filter((p) => p.id !== id));
       setSelectedPrompt(null);
     } catch (err) {
       console.error("Reject sync failed:", err);
     }
   };
-
+ 
   const handleOpenHistory = (id) => {
     setSelectedPromptId(id);
     setHistoryModalOpen(true);
   };
-
-  // Filter by active tab
+ 
+  // same logic – filter by tab
   const filteredPrompts = prompts.filter((p) => p.status === activeTab);
-
+ 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 text-gray-800">
       <Header />
-
+ 
       <main className="flex-1 max-w-6xl w-full mx-auto px-4 py-6 space-y-6">
         <h1 className="text-3xl font-semibold mb-4">DASHBOARD</h1>
-
+ 
         <div className="flex items-center gap-2 bg-gray-300 p-1 rounded-full w-fit mb-6">
           <button
             onClick={() => setActiveTab("pending")}
@@ -114,7 +118,7 @@ export default function Dashboard() {
           >
             Pending
           </button>
-
+ 
           <button
             onClick={() => setActiveTab("approved")}
             className={`px-4 py-2 rounded-full text-sm font-medium transition ${
@@ -126,16 +130,20 @@ export default function Dashboard() {
             Approved
           </button>
         </div>
-
-        {/* SKELETON */}
-        {loading && <PromptSkeleton count={12} />}
-
+ 
+        {/* SKELETON LOADING */}
+        {loading && (
+          <div className="mt-6">
+            <PromptSkeleton count={12} />
+          </div>
+        )}
+ 
         {/* EMPTY STATE */}
         {!loading && filteredPrompts.length === 0 && (
           <p className="text-gray-500 text-center py-10">No prompts found.</p>
         )}
-
-        {/* GRID VIEW */}
+ 
+        {/* GRID CONTENT */}
         {!loading && filteredPrompts.length > 0 && (
           <PaginatedGrid
             data={filteredPrompts}
@@ -148,15 +156,18 @@ export default function Dashboard() {
           />
         )}
       </main>
-
+ 
+      {/* HISTORY MODAL */}
       {historyModalOpen && (
         <HistoryModal
           promptId={selectedPromptId}
           onClose={() => setHistoryModalOpen(false)}
         />
       )}
-
+ 
       <Footer />
     </div>
   );
 }
+ 
+ 
