@@ -1,6 +1,6 @@
 import React from "react";
  
-export default function PromptSkeleton({ count = 9 }) {
+export default function PromptSkeleton({ count = 12 }) {
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mt-6">
       {Array.from({ length: count }).map((_, i) => (
