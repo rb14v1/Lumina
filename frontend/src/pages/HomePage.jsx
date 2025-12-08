@@ -423,8 +423,6 @@ export default function HomePage() {
         <div className="mt-4">
           {loading ? (
             <>
-              <div className="text-gray-500 text-sm py-4">Loading prompts…</div>
-              {/* LOADING STATE - skeletons */}
               {promptsToShow.length === 0 && <PromptSkeleton count={12} />}
             </>
           ) : error ? (
