@@ -335,6 +335,14 @@ export default function HomePage() {
     setHistoryModalOpen(true);
     console.debug("[HomePage] Opening history modal for id:", idToSend);
   };
+  const handlePageChange = async (targetPage) => {
+    const neededOffset = (targetPage - 1) * PAGE_SIZE;
+
+    // If user navigates to a page we haven't loaded yet, fetch more
+    if (allPrompts.length < neededOffset + PAGE_SIZE && hasMore && !loadingMore) {
+      await fetchPrompts(false);  // load next 12 from backend
+    }
+  };
 
 
   return (
@@ -473,6 +481,7 @@ export default function HomePage() {
               <PaginatedGrid
                 data={promptsToShow}
                 CardComponent={PromptCard}
+                onPageChange={handlePageChange}   
                 cardProps={{
                   onClick: (p) => setSelectedPrompt(p),
                   handleBookmark: handleBookmark,
@@ -510,25 +519,9 @@ export default function HomePage() {
                   onOpenHistory: handleOpenHistory,
                 }}
               />
-
-              {/* Optional: Load more button for next 12 */}
-              {hasMore && (
-                <div className="flex justify-center mt-4">
-                  <button
-                    onClick={() => fetchPrompts(false)}
-                    disabled={loadingMore}
-                    className="px-4 py-2 text-sm rounded-full bg-teal-600 text-white hover:bg-teal-700 disabled:opacity-60"
-                  >
-                    {loadingMore ? "Loading..." : "Load more"}
-                  </button>
-                </div>
-              )}
             </>
           )}
         </div>
-
-
-
       </main>
       <Footer />
       {historyModalOpen && historyPromptId && (

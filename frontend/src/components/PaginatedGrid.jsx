@@ -3,36 +3,43 @@ import React, { useState, useEffect } from "react";
 const PaginatedGrid = ({
   data = [],
   CardComponent,
-  cardProps = {}
+  cardProps = {},
+  onPageChange,       // callback to notify HomePage
+  pageSize = 12,      // items per page
 }) => {
+
   const [currentPage, setCurrentPage] = useState(1);
 
-  const cardsPerPage = 12;
-  const totalPages = Math.ceil(data.length / cardsPerPage);
+  const totalPages = Math.ceil(data.length / pageSize);
 
-  const startIndex = (currentPage - 1) * cardsPerPage;
-  const currentData = data.slice(startIndex, startIndex + cardsPerPage);
+  const startIndex = (currentPage - 1) * pageSize;
+  const currentData = data.slice(startIndex, startIndex + pageSize);
 
-  // Reset to page 1 when data changes
+  // Reset to page 1 whenever filtered data changes
   useEffect(() => {
     setCurrentPage(1);
   }, [data]);
 
-  // Scroll to top on pagination change
+  // Auto scroll to top when switching pages
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [currentPage]);
+
+  // Handle pagination clicks and notify parent
+  const goToPage = (pageNum) => {
+    setCurrentPage(pageNum);
+    if (onPageChange) onPageChange(pageNum); // lazy load next batch when needed
+  };
 
   if (!data.length) {
     return <p className="text-center mt-10">No prompts found</p>;
   }
 
-  // ----- PAGINATION WINDOW -----
-  const windowSize = 4; // show only 4 page numbers
+  // PAGINATION BUTTON WINDOW (4 page numbers)
+  const windowSize = 4;
   let startPage = Math.max(1, currentPage - Math.floor(windowSize / 2));
   let endPage = startPage + windowSize - 1;
 
-  // Do not exceed total pages
   if (endPage > totalPages) {
     endPage = totalPages;
     startPage = Math.max(1, endPage - windowSize + 1);
@@ -40,35 +47,33 @@ const PaginatedGrid = ({
 
   return (
     <div>
+      {/* GRID */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-3">
         {currentData.map((item) => (
-          <CardComponent
-            key={item.id}
-            prompt={item}
-            {...cardProps}
-          />
+          <CardComponent key={item.id} prompt={item} {...cardProps} />
         ))}
       </div>
 
+      {/* PAGINATION */}
       {totalPages > 1 && (
         <div className="flex justify-center items-center gap-2 mt-10">
-          
+
           {/* Prev */}
           <button
-            onClick={() => setCurrentPage((p) => p - 1)}
+            onClick={() => goToPage(currentPage - 1)}
             disabled={currentPage === 1}
             className="px-4 py-2 cursor-pointer border rounded-md disabled:opacity-40"
           >
             Prev
           </button>
 
-          {/* Page Window */}
+          {/* Page Numbers */}
           {Array.from({ length: endPage - startPage + 1 }).map((_, i) => {
             const page = startPage + i;
             return (
               <button
                 key={page}
-                onClick={() => setCurrentPage(page)}
+                onClick={() => goToPage(page)}
                 className={`px-4 py-2 border rounded-md ${
                   currentPage === page
                     ? "bg-teal-500 text-white"
@@ -82,7 +87,7 @@ const PaginatedGrid = ({
 
           {/* Next */}
           <button
-            onClick={() => setCurrentPage((p) => p + 1)}
+            onClick={() => goToPage(currentPage + 1)}
             disabled={currentPage === totalPages}
             className="px-4 py-2 border cursor-pointer rounded-md disabled:opacity-40"
           >
