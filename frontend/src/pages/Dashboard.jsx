@@ -144,9 +144,9 @@ export default function Dashboard() {
         )}
  
         {/* GRID CONTENT */}
-        {!loading && filteredPrompts.length > 0 && (
+        {!loading && prompts.length > 0 && (
           <PaginatedGrid
-            data={filteredPrompts}
+            data={prompts}
             CardComponent={PromptCard}
             cardProps={{
               onApprove: handleApprove,
