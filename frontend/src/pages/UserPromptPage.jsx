@@ -1,5 +1,3 @@
-// frontend/src/pages/UserPromptsPage.jsx
-
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../api/axios";
@@ -8,16 +6,16 @@ import Footer from "../components/Footer";
 import PromptCard from "../components/PromptCard";
 import PaginatedGrid from "../components/PaginatedGrid";
 import PromptSkeleton from "../components/PromptSkeleton";
-
+ 
 export default function UserPromptsPage() {
   const { username } = useParams();
   const navigate = useNavigate();
-
+ 
   const [prompts, setPrompts] = useState([]);
   const [bookmarks, setBookmarks] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
+ 
   // 🔹 Convert backend → frontend format
   const mapPrompt = (p) => ({
     id: p.id,
@@ -30,26 +28,29 @@ export default function UserPromptsPage() {
     copy_count: p.copy_count || 0,
     raw: p,
   });
-
+ 
   useEffect(() => {
     if (!username) return;
-
+ 
     const fetchPrompts = async () => {
       setLoading(true);
       setError("");
-
+ 
       try {
         const res = await api.get("/prompts/", { params: { username } });
-
-        const backend = res.data || [];
+ 
+        // 🟢 FIX: handle paginated + non-paginated API response
+        const backend = Array.isArray(res.data)
+          ? res.data
+          : res.data?.results || [];
+ 
         const mapped = backend.map(mapPrompt);
-
         setPrompts(mapped);
-
+ 
         const bookmarkIds = backend
-          .filter((p) => p.is_bookmarked)
+          .filter((p) => p.is_bookmarked || p.raw?.is_bookmarked)
           .map((p) => p.id);
-
+ 
         setBookmarks(bookmarkIds);
       } catch (err) {
         console.error("❌ Error fetching user prompts:", err);
@@ -58,11 +59,10 @@ export default function UserPromptsPage() {
         setLoading(false);
       }
     };
-
+ 
     fetchPrompts();
   }, [username]);
-
-  // 🔹 Bookmark toggle from PromptCard
+ 
   const handleBookmark = (promptObj) => {
     setBookmarks((prev) =>
       prev.includes(promptObj.id)
@@ -70,20 +70,19 @@ export default function UserPromptsPage() {
         : [...prev, promptObj.id]
     );
   };
-
-  // 🔹 Updating like/dislike/bookmark from backend response
+ 
   const handleVoteUpdate = (updatedBackendPrompt) => {
     setPrompts((prev) =>
       prev.map((p) =>
         p.id === updatedBackendPrompt.id ? mapPrompt(updatedBackendPrompt) : p
       )
     );
-
+ 
     const isBookmarked =
       updatedBackendPrompt.is_bookmarked ??
       updatedBackendPrompt.raw?.is_bookmarked ??
       false;
-
+ 
     setBookmarks((prev) =>
       isBookmarked
         ? prev.includes(updatedBackendPrompt.id)
@@ -92,11 +91,11 @@ export default function UserPromptsPage() {
         : prev.filter((id) => id !== updatedBackendPrompt.id)
     );
   };
-
+ 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 text-gray-800">
       <Header />
-
+ 
       <main className="flex-1 max-w-6xl w-full mx-auto px-4 py-6 space-y-6 pb-24">
         {/* Back Button */}
         <div className="relative flex items-center w-full mt-2 mb-2">
@@ -109,12 +108,12 @@ export default function UserPromptsPage() {
           >
             ← Back
           </button>
-
+ 
           <div className="mx-auto text-center mb-3">
             <h1 className="text-2xl font-bold">{username}'s Prompts</h1>
           </div>
         </div>
-
+ 
         {loading ? (
           <>{prompts.length === 0 && <PromptSkeleton count={9} />}</>
         ) : error ? (
@@ -130,12 +129,12 @@ export default function UserPromptsPage() {
               bookmarks: bookmarks,
               onVote: handleVoteUpdate,
               currentUserUsername: username,
-              showOwnerActions: false, // disable edit/history on this page
+              showOwnerActions: false,
             }}
           />
         )}
       </main>
-
+ 
       <Footer />
     </div>
   );
