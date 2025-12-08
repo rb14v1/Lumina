@@ -255,7 +255,7 @@ export default function HomePage() {
 
   useEffect(() => {
     setCategoryOptions(CATEGORY_OPTIONS);
-  }, [data.length]);
+  }, []);
 
 
 
