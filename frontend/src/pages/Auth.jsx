@@ -86,9 +86,7 @@ const Auth = () => {
       }
     } catch (err) {
       console.error("API Error:", err);
-      const errorMsg =
-        err.response?.data?.detail || err.message || "An error occurred";
-      setMessage(`❌ Error: ${errorMsg}`);
+      setMessage("❌ Invalid username or password");
     } finally {
       setLoading(false);
     }
