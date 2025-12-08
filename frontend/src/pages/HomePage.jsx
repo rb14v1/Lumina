@@ -483,6 +483,7 @@ export default function HomePage() {
               <PaginatedGrid
                 data={promptsToShow}
                 CardComponent={PromptCard}
+                hasMore={hasMore} 
                 onPageChange={handlePageChange}   
                 cardProps={{
                   onClick: (p) => setSelectedPrompt(p),

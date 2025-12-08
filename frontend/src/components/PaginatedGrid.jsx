@@ -5,12 +5,18 @@ const PaginatedGrid = ({
   CardComponent,
   cardProps = {},
   onPageChange,       // callback to notify HomePage
-  pageSize = 12,      // items per page
+  pageSize = 12, 
+  hasMore = false,     
 }) => {
 
   const [currentPage, setCurrentPage] = useState(1);
 
-  const totalPages = Math.ceil(data.length / pageSize);
+  let totalPages = Math.ceil(data.length / pageSize);
+
+  // If backend says more data exists, show one extra "virtual" page
+  if (hasMore) {
+    totalPages += 1;
+  }
 
   const startIndex = (currentPage - 1) * pageSize;
   const currentData = data.slice(startIndex, startIndex + pageSize);
