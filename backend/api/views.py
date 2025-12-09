@@ -155,58 +155,42 @@ class PromptViewSet(viewsets.ModelViewSet):
         user = self.request.user
         params = self.request.query_params
  
-        # ----- base queryset (your existing logic, just stored in qs) -----
+        # --- Base queryset ---
         if user.is_staff:
-            if params.get('mine') == '1':
-                qs = Prompt.objects.filter(user=user).order_by('-copy_count', '-created_at')
- 
-            else:
-                username = params.get('username')
-                if username:
-                    qs = Prompt.objects.filter(user__username=username).order_by('-copy_count', '-created_at')
-                else:
-                    qs = Prompt.objects.filter(is_public=True).order_by('-copy_count', '-created_at')
+            qs = Prompt.objects.all()
         else:
             if params.get('mine') == '1':
-                qs = Prompt.objects.filter(user=user).order_by('-copy_count', '-created_at')
+                qs = Prompt.objects.filter(user=user)
             else:
-                username = params.get('username')
-                if username:
-                    qs = Prompt.objects.filter(
-                        status='approved',
-                        is_public=True
-                    ).order_by('-copy_count', '-created_at')
-                else:
-                    qs = Prompt.objects.filter(
-                        status='approved',
-                        is_public=True
-                    ).order_by('-copy_count', '-created_at')
+                qs = Prompt.objects.filter(is_public=True, status="approved")
  
-        # ----- Apply status filter if provided -----
-        status = params.get('status')
-        if status:
-            qs = qs.filter(status=status)
+        # --- Apply filters BEFORE pagination ---
+        status_param = params.get('status')
+        if status_param:
+            qs = qs.filter(status=status_param)
  
-        # ----- NEW: limit + offset (for lazy loading) -----
-        limit = params.get('limit')
-        offset = params.get('offset')
+        username = params.get("username")
+        if username:
+            qs = qs.filter(user__username=username)
+ 
+        qs = qs.order_by('-copy_count', '-created_at')
+ 
+        # --- Pagination (AFTER FILTERING) ---
+        limit = params.get("limit")
+        offset = params.get("offset")
  
         try:
-            offset_int = int(offset) if offset is not None else 0
-            if offset_int < 0:
-                offset_int = 0
-        except ValueError:
+            offset_int = int(offset) if offset else 0
+        except:
             offset_int = 0
  
-        if limit is not None:
+        if limit:
             try:
                 limit_int = int(limit)
-                if limit_int > 0:
-                    return qs[offset_int: offset_int + limit_int]
-            except ValueError:
-                pass  # if invalid limit, just ignore and return full qs
+                return qs[offset_int : offset_int + limit_int]
+            except:
+                pass
  
-        # default behaviour (no limit)
         return qs
  
     def _auto_approve_if_private(self, serializer):

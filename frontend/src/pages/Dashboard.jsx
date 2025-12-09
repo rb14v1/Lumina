@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import Header from "../components/Header";
@@ -24,59 +24,113 @@ export default function Dashboard() {
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
   const [selectedPromptId, setSelectedPromptId] = useState(null);
  
-  const fetchInitialPrompts = async () => {
+  // request id to ignore stale responses when tab changes
+  const reqIdRef = useRef(0);
+ 
+  // helper: safely update prompts only if request id still matches
+  const safeSetPrompts = (id, updater) => {
+    if (reqIdRef.current !== id) return;
+    setPrompts(updater);
+  };
+ 
+  const fetchInitialPrompts = async (id) => {
     try {
       setLoading(true);
       const url = `/prompts/?status=${activeTab}&limit=60&offset=0`;
-      console.log("Fetching initial prompts from:", url);
+      // debug
+      // console.log("Fetching initial prompts from:", url);
       const res = await api.get(url);
-      console.log("Initial prompts response:", res.data);
       const dataArray = Array.isArray(res.data) ? res.data : res.data?.results || [];
-      console.log("Initial prompts data array:", dataArray);
-      setPrompts(dataArray);
+      safeSetPrompts(id, () => dataArray);
     } catch (err) {
+      // ignore if stale request
+      if (reqIdRef.current !== id) return;
       console.error("Error fetching initial prompts:", err);
     } finally {
-      setLoading(false);
+      if (reqIdRef.current === id) setLoading(false);
     }
   };
  
-  const fetchRemainingPrompts = async () => {
+  const fetchRemainingPrompts = async (id) => {
     try {
       setLoadingBackground(true);
  
       let offset = 60;
       const LIMIT = 500;
+      // safety: avoid infinite loops; allow up to 20 background pages
+      const MAX_PAGES = 20;
+      let pages = 0;
  
-      while (true) {
+      while (pages < MAX_PAGES) {
+        // if user changed tab or a new request started -> stop
+        if (reqIdRef.current !== id) break;
+ 
         const url = `/prompts/?status=${activeTab}&limit=${LIMIT}&offset=${offset}`;
+        // console.log("Fetching remaining prompts:", url);
         const res = await api.get(url);
         const dataArray = Array.isArray(res.data) ? res.data : res.data?.results || [];
  
         if (!dataArray.length) break;
  
-        setPrompts((prev) => [...prev, ...dataArray]);
+        // append safely (but ensure still current request)
+        if (reqIdRef.current === id) {
+          setPrompts((prev) => {
+            // avoid duplicates by id
+            const existingIds = new Set(prev.map((p) => p.id));
+            const filtered = dataArray.filter((d) => !existingIds.has(d.id));
+            return [...prev, ...filtered];
+          });
+        } else {
+          break;
+        }
+ 
         offset += LIMIT;
+        pages += 1;
       }
     } catch (err) {
+      if (reqIdRef.current !== id) return;
       console.error("Background load failed:", err);
     } finally {
-      setLoadingBackground(false);
+      if (reqIdRef.current === id) setLoadingBackground(false);
     }
   };
  
+  // single effect that runs on activeTab change
   useEffect(() => {
-    fetchInitialPrompts().then(() => {
-      fetchRemainingPrompts();
-    });
+    // bump request id so previous fetches are ignored
+    reqIdRef.current += 1;
+    const myReqId = reqIdRef.current;
+ 
+    // clear old prompts immediately so UI doesn't show stale cards
+    setPrompts([]);
+    setLoadingBackground(false);
+ 
+    // fetch initial + remaining for this tab only
+    (async () => {
+      await fetchInitialPrompts(myReqId);
+      // if initial fetch returned and this request is still active, fetch remaining
+      if (reqIdRef.current === myReqId) {
+        fetchRemainingPrompts(myReqId);
+      }
+    })();
+ 
+    // cleanup - when component unmounts, bump reqId to cancel
+    return () => {
+      reqIdRef.current += 1;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
  
   const handleApprove = async (id) => {
     try {
       await api.post(`/prompts/${id}/approve/`);
-      setPrompts((prev) =>
-        prev.map((p) => (p.id === id ? { ...p, status: "approved" } : p))
-      );
+      // If currently viewing pending tab, remove the prompt from list (since it's now approved)
+      if (activeTab === "pending") {
+        setPrompts((prev) => prev.filter((p) => p.id !== id));
+      } else {
+        // otherwise update in-place
+        setPrompts((prev) => prev.map((p) => (p.id === id ? { ...p, status: "approved" } : p)));
+      }
       setSelectedPrompt(null);
     } catch (err) {
       console.error("Backend sync failed:", err);
@@ -86,12 +140,14 @@ export default function Dashboard() {
   const handleReject = async (id) => {
     try {
       await api.post(`/prompts/${id}/reject/`);
+      // remove from current view
       setPrompts((prev) => prev.filter((p) => p.id !== id));
       setSelectedPrompt(null);
     } catch (err) {
       console.error("Reject sync failed:", err);
     }
   };
+ 
   const handleOpenHistory = (id) => {
     setSelectedPromptId(id);
     setHistoryModalOpen(true);
@@ -126,10 +182,8 @@ export default function Dashboard() {
             Approved
           </button>
         </div>
-       
-        {loading && (
-          <PromptSkeleton count={12} />
-        )}
+ 
+        {loading && <PromptSkeleton count={12} />}
  
         {!loading && prompts.length === 0 && (
           <p className="text-gray-500 text-center py-10">No prompts found.</p>
@@ -147,26 +201,19 @@ export default function Dashboard() {
               }}
             />
             {loadingBackground && (
-              <div className="mt-6 text-center">
-                <p className="text-gray-500 text-sm mb-4">Loading more prompts...</p>
+              <div className="mt-4">
+                <p className="text-gray-500 text-center text-sm mb-3">Loading more prompts...</p>
+                <PromptSkeleton count={12} />
               </div>
             )}
           </>
         )}
- 
       </main>
  
       {historyModalOpen && (
-        <HistoryModal
-          promptId={selectedPromptId}
-          onClose={() => setHistoryModalOpen(false)}
-        />
+        <HistoryModal promptId={selectedPromptId} onClose={() => setHistoryModalOpen(false)} />
       )}
       <Footer />
     </div>
   );
 }
- 
- 
- 
- 
