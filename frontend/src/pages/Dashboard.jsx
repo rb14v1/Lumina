@@ -147,9 +147,8 @@ export default function Dashboard() {
               }}
             />
             {loadingBackground && (
-              <div className="mt-4">
-                <p className="text-gray-500 text-center text-sm mb-3">Loading more prompts...</p>
-                <PromptSkeleton count={12} />
+              <div className="mt-6 text-center">
+                <p className="text-gray-500 text-sm mb-4">Loading more prompts...</p>
               </div>
             )}
           </>
