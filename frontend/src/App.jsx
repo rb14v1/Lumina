@@ -1,15 +1,26 @@
 import { Routes, Route, Navigate } from "react-router-dom";
-import React, { Suspense } from "react";
+import React, { Suspense, useEffect } from "react";
 import { useAuth } from "./context/AuthContext";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
  
 // Lazy loaded pages
+// Lazy loaded pages with preload helpers
 const AddPromptPage = React.lazy(() => import("./pages/AddPromptPage"));
+AddPromptPage.preload = () => import("./pages/AddPromptPage");
+
 const Auth = React.lazy(() => import("./pages/Auth.jsx"));
+Auth.preload = () => import("./pages/Auth.jsx");
+
 const Dashboard = React.lazy(() => import("./pages/Dashboard.jsx"));
+Dashboard.preload = () => import("./pages/Dashboard.jsx");
+
 const HomePage = React.lazy(() => import("./pages/HomePage.jsx"));
+HomePage.preload = () => import("./pages/HomePage.jsx");
+
 const UserPromptsPage = React.lazy(() => import("./pages/UserPromptPage.jsx"));
+UserPromptsPage.preload = () => import("./pages/UserPromptPage.jsx");
+
  
 // Non-lazy (small component)
 import CopyFeedbackPopup from "./components/CopyFeedbackPopup";
@@ -24,6 +35,16 @@ function App() {
     pendingPromptTitle,
     setShowFeedbackPopup,
   } = useAuth();
+  useEffect(() => {
+    // Preload main user pages
+    HomePage.preload();
+    AddPromptPage.preload();
+    UserPromptsPage.preload();
+
+    // If you want admin pages preloaded too:
+    Dashboard.preload();
+  }, []);
+
  
   if (loadingUser) {
     return (
