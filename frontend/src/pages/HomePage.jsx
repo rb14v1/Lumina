@@ -195,8 +195,8 @@ export default function HomePage() {
     try {
       setLoadingBackground(true);
 
-      let offset = 500;
-      const LIMIT = 1000; // chunk size
+      let offset = 60;
+      const LIMIT = 500; // chunk size
 
       while (true) {
         let url = `/prompts/?limit=${LIMIT}&offset=${offset}`;
