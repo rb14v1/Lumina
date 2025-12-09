@@ -40,21 +40,21 @@ export default function Dashboard() {
       setLoading(false);
     }
   };
-
+ 
   const fetchRemainingPrompts = async () => {
     try {
       setLoadingBackground(true);
-
+ 
       let offset = 60;
       const LIMIT = 500;
-
+ 
       while (true) {
         const url = `/prompts/?status=${activeTab}&limit=${LIMIT}&offset=${offset}`;
         const res = await api.get(url);
         const dataArray = Array.isArray(res.data) ? res.data : res.data?.results || [];
-
+ 
         if (!dataArray.length) break;
-
+ 
         setPrompts((prev) => [...prev, ...dataArray]);
         offset += LIMIT;
       }
@@ -166,5 +166,7 @@ export default function Dashboard() {
     </div>
   );
 }
+ 
+ 
  
  
