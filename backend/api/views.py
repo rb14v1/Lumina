@@ -148,7 +148,7 @@ class PromptViewSet(viewsets.ModelViewSet):
     queryset = Prompt.objects.all()
     permission_classes = [permissions.IsAuthenticated, IsAdminOrOwner]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
-    filterset_fields = ['category', 'task_type', 'output_format', 'status']
+    filterset_fields = ['category', 'task_type', 'output_format']
     search_fields = ['title', 'prompt_description', 'prompt_text']
 
     def get_queryset(self):
@@ -181,6 +181,11 @@ class PromptViewSet(viewsets.ModelViewSet):
                         status='approved',
                         is_public=True
                     ).order_by('-copy_count', '-created_at')
+
+        # ----- Apply status filter if provided -----
+        status = params.get('status')
+        if status:
+            qs = qs.filter(status=status)
 
         # ----- NEW: limit + offset (for lazy loading) -----
         limit = params.get('limit')

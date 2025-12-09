@@ -7,12 +7,12 @@ import Footer from "../components/Footer";
 import HistoryModal from "../components/HistoryModal.jsx";
 import PaginatedGrid from "../components/PaginatedGrid";
 import PromptSkeleton from "../components/PromptSkeleton";
- 
-const API_BASE = "/api"; // Use /api for ec2
+import api from "../api/axios";
  
 export default function Dashboard() {
   const { isAdmin, isLoggedIn } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [loadingBackground, setLoadingBackground] = useState(false);
  
   if (!isLoggedIn) return <Navigate to="/login" replace />;
   if (!isAdmin) return <Navigate to="/" replace />;
@@ -24,35 +24,56 @@ export default function Dashboard() {
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
   const [selectedPromptId, setSelectedPromptId] = useState(null);
  
-  useEffect(() => {
-    const fetchPrompts = async () => {
+  const fetchInitialPrompts = async () => {
+    try {
       setLoading(true);
-      try {
-        const res = await fetch(`${API_BASE}/prompts/?status=${activeTab}`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("accessToken") || ""}`,
-          },
-        });
-        const data = await res.json();
-        setPrompts(data);
-      } catch (err) {
-        console.error("Error fetching prompts:", err);
-      }finally {
-      setLoading(false);            
+      const url = `/prompts/?status=${activeTab}&limit=60&offset=0`;
+      console.log("Fetching initial prompts from:", url);
+      const res = await api.get(url);
+      console.log("Initial prompts response:", res.data);
+      const dataArray = Array.isArray(res.data) ? res.data : res.data?.results || [];
+      console.log("Initial prompts data array:", dataArray);
+      setPrompts(dataArray);
+    } catch (err) {
+      console.error("Error fetching initial prompts:", err);
+    } finally {
+      setLoading(false);
     }
-    };
-    fetchPrompts();
+  };
+
+  const fetchRemainingPrompts = async () => {
+    try {
+      setLoadingBackground(true);
+
+      let offset = 60;
+      const LIMIT = 500;
+
+      while (true) {
+        const url = `/prompts/?status=${activeTab}&limit=${LIMIT}&offset=${offset}`;
+        const res = await api.get(url);
+        const dataArray = Array.isArray(res.data) ? res.data : res.data?.results || [];
+
+        if (!dataArray.length) break;
+
+        setPrompts((prev) => [...prev, ...dataArray]);
+        offset += LIMIT;
+      }
+    } catch (err) {
+      console.error("Background load failed:", err);
+    } finally {
+      setLoadingBackground(false);
+    }
+  };
+ 
+  useEffect(() => {
+    fetchInitialPrompts().then(() => {
+      fetchRemainingPrompts();
+    });
   }, [activeTab]);
  
   const handleApprove = async (id) => {
     try {
-      await fetch(`${API_BASE}/prompts/${id}/approve/`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("accessToken") || ""}`,
-          "Content-Type": "application/json",
-        },
-      });
+      await api.post(`/prompts/${id}/approve/`);
       setPrompts((prev) =>
         prev.map((p) => (p.id === id ? { ...p, status: "approved" } : p))
       );
@@ -64,13 +85,7 @@ export default function Dashboard() {
  
   const handleReject = async (id) => {
     try {
-      await fetch(`${API_BASE}/prompts/${id}/reject/`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("accessToken") || ""}`,
-          "Content-Type": "application/json",
-        },
-      });
+      await api.post(`/prompts/${id}/reject/`);
       setPrompts((prev) => prev.filter((p) => p.id !== id));
       setSelectedPrompt(null);
     } catch (err) {
@@ -81,8 +96,6 @@ export default function Dashboard() {
     setSelectedPromptId(id);
     setHistoryModalOpen(true);
   };
- 
-  const filteredPrompts = prompts.filter((p) => p.status === activeTab);
  
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 text-gray-800">
@@ -118,20 +131,28 @@ export default function Dashboard() {
           <PromptSkeleton count={12} />
         )}
  
-        {!loading && filteredPrompts.length === 0 && (
+        {!loading && prompts.length === 0 && (
           <p className="text-gray-500 text-center py-10">No prompts found.</p>
         )}
  
-        {!loading && filteredPrompts.length > 0 && (
-          <PaginatedGrid
-            data={filteredPrompts}
-            CardComponent={PromptCard}
-            cardProps={{
-              onApprove: handleApprove,
-              onReject: handleReject,
-              onHistory: handleOpenHistory,
-            }}
-          />
+        {!loading && prompts.length > 0 && (
+          <>
+            <PaginatedGrid
+              data={prompts}
+              CardComponent={PromptCard}
+              cardProps={{
+                onApprove: handleApprove,
+                onReject: handleReject,
+                onHistory: handleOpenHistory,
+              }}
+            />
+            {loadingBackground && (
+              <div className="mt-4">
+                <p className="text-gray-500 text-center text-sm mb-3">Loading more prompts...</p>
+                <PromptSkeleton count={12} />
+              </div>
+            )}
+          </>
         )}
  
       </main>
