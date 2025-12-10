@@ -7,7 +7,7 @@ const PaginatedGrid = ({
 }) => {
   const [currentPage, setCurrentPage] = useState(1);
 
-  const cardsPerPage = 30;
+  const cardsPerPage = 12
   const totalPages = Math.ceil(data.length / cardsPerPage);
 
   const startIndex = (currentPage - 1) * cardsPerPage;
